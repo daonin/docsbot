@@ -10,3 +10,4 @@ python-telegram-bot
 pyyaml
 httpx 
 supervisor 
+wikipedia
