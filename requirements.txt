@@ -1,6 +1,7 @@
 llama-index
 llama-index-readers-file
 llama-index-readers-web
+llama-index-readers-wikipedia
 llama-hub
 sentence-transformers
 fastapi
