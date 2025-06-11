@@ -1,7 +1,7 @@
 llama-index
 llama-index-readers-file
 llama-index-readers-web
-llama-index-readers-mediawiki
+llama-hub
 sentence-transformers
 fastapi
 uvicorn
