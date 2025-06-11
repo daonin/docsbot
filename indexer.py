@@ -15,21 +15,18 @@ class Indexer:
         self.sources = self.config['sources']
         self.index = None
     
-    def load_from_custom_wiki(self, api_url, page_title):
+    def load_from_custom_wiki(self, api_url, page_id):
         params = {
-            "action": "query",
+            "action": "parse",
             "format": "json",
-            "titles": page_title,
-            "prop": "extracts",
-            "explaintext": True
+            "pageid": page_id,
         }
         response = requests.get(api_url, params=params).json()
-        page = next(iter(response["query"]["pages"].values()))
-        extract = page.get("extract")
-        if not extract:
-            print(f"Нет содержимого для {page_title}")
+        page = response["parse"]["text"]["*"]
+        if not page:
+            print(f"Нет содержимого для {page_id}")
             return None
-        return Document(text=extract)
+        return Document(text=page)
         
     # Получаем все страницы из википедии
     def get_all_wiki_titles(self, api_url):
@@ -57,7 +54,7 @@ class Indexer:
             if urlparse(resp.url).netloc != base_netloc:
                 print(f"Пропущен внешний домен: {resp.url}")
                 break
-            pages.extend([p['title'] for p in data['query']['allpages']])
+            pages.extend([p['pageid'] for p in data['query']['allpages']])
             if 'continue' in data:
                 apcontinue = data['continue']['apcontinue']
             else:
@@ -73,14 +70,14 @@ class Indexer:
             elif src['type'] == 'wiki':
                 api_url = src.get('api_url')
                 if api_url:
-                    titles = self.get_all_wiki_titles(api_url)
-                    for title in titles:
+                    page_ids = self.get_all_wiki_titles(api_url)
+                    for page_id in page_ids:
                         try:
-                            doc = self.load_from_custom_wiki(api_url, title)
+                            doc = self.load_from_custom_wiki(api_url, page_id)
                             if doc:
                                 docs.append(doc)
                         except Exception as e:
-                            print(f"Ошибка при загрузке {title}: {e}")
+                            print(f"Ошибка при загрузке {page_id}: {e}")
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
                 docs.extend(reader.load_data([src['url']]))
