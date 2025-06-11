@@ -15,7 +15,7 @@ class Indexer:
         self.sources = self.config['sources']
         self.index = None
     
-    def load_from_custom_wiki(api_url, page_title):
+    def load_from_custom_wiki(self,api_url, page_title):
         params = {
             "action": "query",
             "format": "json",
@@ -81,7 +81,7 @@ class Indexer:
             elif src['type'] == 'website':
                 reader = BeautifulSoupWebReader()
                 docs.extend(reader.load_data([src['url']]))
-        self.index = VectorStoreIndex.from_documents(docs)
+        self.index = VectorStoreIndex.from_documents(docs, embed_model=self.embedding_model)
         os.makedirs(self.index_path, exist_ok=True)
         self.index.storage_context.persist(persist_dir=self.index_path)
 
