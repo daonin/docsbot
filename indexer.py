@@ -5,6 +5,7 @@ import os
 import requests
 from urllib.parse import urlparse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
@@ -75,16 +76,14 @@ class Indexer:
                 api_url = src.get('api_url')
                 if api_url:
                     page_ids = self.get_all_wiki_titles(api_url)
-                    total_pages = len(page_ids)
-                    print(f"  Всего страниц в Wiki: {total_pages}")
-                    for page_idx, page_id in enumerate(page_ids, 1):
-                        try:
-                            print(f"    [Wiki {page_idx}/{total_pages}] page_id={page_id}")
-                            doc = self.load_from_custom_wiki(api_url, page_id)
+                    docs = []
+                    with ThreadPoolExecutor(max_workers=8) as executor:
+                        futures = {executor.submit(self.load_from_custom_wiki, api_url, pid): pid for pid in page_ids}
+                        for i, future in enumerate(as_completed(futures), 1):
+                            doc = future.result()
                             if doc:
                                 docs.append(doc)
-                        except Exception as e:
-                            print(f"Ошибка при загрузке {page_id}: {e}")
+                            print(f"  [{i}/{len(page_ids)}] wiki page loaded")
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
                 print(f"  Индексирую Swagger по адресу: {src['url']}")

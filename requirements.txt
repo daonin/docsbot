@@ -1,7 +1,6 @@
 llama-index
 llama-index-readers-file
 llama-index-readers-web
-llama-index-readers-wikipedia
 llama-hub
 llama-index.embeddings.huggingface
 fastapi
@@ -10,4 +9,4 @@ python-telegram-bot
 pyyaml
 httpx 
 supervisor 
-wikipedia
+concurrent.futures
