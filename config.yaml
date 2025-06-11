@@ -1,0 +1,17 @@
+# docsbot config example
+update_interval_hours: 24
+embedding_model: all-MiniLM-L6-v2
+llama_index_path: ./index/
+llama_index_type: simple
+ollama_api_url: http://model:11434
+telegram_token: "YOUR_TELEGRAM_BOT_TOKEN"
+
+sources:
+  - type: local
+    path: ./docs/
+  - type: wiki
+    url: https://example-wiki.org/Main_Page
+  - type: swagger
+    url: https://example.com/openapi.json
+  - type: website
+    url: https://example.com/docs 

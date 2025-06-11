@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  model:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    command: ["ollama", "serve", "--model", "mistral:7b", "--load-in-4bit"]
+
+  api:
+    build: .
+    volumes:
+      - ./index:/app/index
+    ports:
+      - "8000:8000"
+    depends_on:
+      - model
+
+volumes:
+  ollama_data: 

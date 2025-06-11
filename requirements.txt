@@ -1,0 +1,7 @@
+llama-index
+sentence-transformers
+fastapi
+uvicorn
+python-telegram-bot
+pyyaml
+httpx 
