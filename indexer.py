@@ -1,7 +1,7 @@
 import yaml
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.readers.web import BeautifulSoupWebReader, SimpleWebPageReader
-from llama_hub.mediawiki.base import MediaWikiReader
+from llama_index.readers.mediawiki import MediaWikiReader
 from sentence_transformers import SentenceTransformer
 import os
 
