@@ -10,7 +10,7 @@ sources:
   - type: local
     path: ./docs/
   - type: wiki
-    url: https://example-wiki.org/Main_Page
+    api_url: https://example-wiki.org/api.php
   - type: swagger
     url: https://example.com/openapi.json
   - type: website

@@ -4,6 +4,7 @@ from llama_index.readers.web import BeautifulSoupWebReader, SimpleWebPageReader
 from llama_index.readers.wikipedia import WikipediaReader
 from sentence_transformers import SentenceTransformer
 import os
+import requests
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
@@ -14,6 +15,26 @@ class Indexer:
         self.sources = self.config['sources']
         self.index = None
 
+    def get_all_wiki_titles(self, api_url):
+        pages = []
+        apcontinue = ''
+        while True:
+            params = {
+                'action': 'query',
+                'list': 'allpages',
+                'aplimit': 'max',
+                'format': 'json'
+            }
+            if apcontinue:
+                params['apcontinue'] = apcontinue
+            resp = requests.get(api_url, params=params).json()
+            pages.extend([p['title'] for p in resp['query']['allpages']])
+            if 'continue' in resp:
+                apcontinue = resp['continue']['apcontinue']
+            else:
+                break
+        return pages
+
     def build_index(self):
         docs = []
         for src in self.sources:
@@ -21,8 +42,19 @@ class Indexer:
                 reader = SimpleDirectoryReader(src['path'])
                 docs.extend(reader.load_data())
             elif src['type'] == 'wiki':
-                reader = WikipediaReader()
-                docs.extend(reader.load_data(pages=[src['url']]))
+                api_url = src.get('api_url')
+                if api_url:
+                    from llama_index.readers.mediawiki import MediaWikiReader
+                    titles = self.get_all_wiki_titles(api_url)
+                    reader = MediaWikiReader()
+                    for title in titles:
+                        try:
+                            docs.extend(reader.load_data(pages=[title]))
+                        except Exception as e:
+                            print(f"Ошибка при загрузке {title}: {e}")
+                else:
+                    reader = WikipediaReader()
+                    docs.extend(reader.load_data(pages=[src['url']]))
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
                 docs.extend(reader.load_data([src['url']]))
