@@ -23,7 +23,7 @@ alwaysApply: true
 
 Оффлайн-эмбеддинги: all-MiniLM-L6-v2 вместо OpenAI.
 
-MediaWikiReader для Wiki.
+WikipediaReader для Wiki.
 WebBaseReader для Swagger.
 SimpleDirectoryReader для локальных файлов и директорий.
 BeautifulSoupWebReader для статических вебсайтов.

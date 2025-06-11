@@ -44,9 +44,8 @@ class Indexer:
             elif src['type'] == 'wiki':
                 api_url = src.get('api_url')
                 if api_url:
-                    from llama_index.readers.mediawiki import MediaWikiReader
                     titles = self.get_all_wiki_titles(api_url)
-                    reader = MediaWikiReader()
+                    reader = WikipediaReader()
                     for title in titles:
                         try:
                             docs.extend(reader.load_data(pages=[title]))
