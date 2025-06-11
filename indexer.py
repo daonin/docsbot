@@ -1,7 +1,7 @@
 import yaml
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.readers.web import BeautifulSoupWebReader, SimpleWebPageReader
-from llama_index.readers.mediawiki import MediaWikiReader
+from llama_index.readers.wikipedia import WikipediaReader
 from sentence_transformers import SentenceTransformer
 import os
 
@@ -21,8 +21,8 @@ class Indexer:
                 reader = SimpleDirectoryReader(src['path'])
                 docs.extend(reader.load_data())
             elif src['type'] == 'wiki':
-                reader = MediaWikiReader()
-                docs.extend(reader.load_data(page_titles=[src['url']]))
+                reader = WikipediaReader()
+                docs.extend(reader.load_data(pages=[src['url']]))
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
                 docs.extend(reader.load_data([src['url']]))
