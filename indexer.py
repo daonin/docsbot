@@ -1,7 +1,6 @@
 import yaml
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Document
 from llama_index.readers.web import BeautifulSoupWebReader, SimpleWebPageReader
-from llama_index.readers.wikipedia import WikipediaReader
 from sentence_transformers import SentenceTransformer
 import os
 import requests
@@ -15,6 +14,18 @@ class Indexer:
         self.embedding_model = SentenceTransformer(self.config['embedding_model'])
         self.sources = self.config['sources']
         self.index = None
+    
+    def load_from_custom_wiki(api_url, page_title):
+        params = {
+            "action": "query",
+            "format": "json",
+            "titles": page_title,
+            "prop": "extracts",
+            "explaintext": True
+        }
+        response = requests.get(api_url, params=params).json()
+        page = next(iter(response["query"]["pages"].values()))
+        return Document(text=page["extract"])
         
     # Получаем все страницы из википедии
     def get_all_wiki_titles(self, api_url):
@@ -59,15 +70,11 @@ class Indexer:
                 api_url = src.get('api_url')
                 if api_url:
                     titles = self.get_all_wiki_titles(api_url)
-                    reader = WikipediaReader(base_url=api_url)
                     for title in titles:
                         try:
-                            docs.extend(reader.load_data(pages=[title]))
+                            docs.extend(self.load_from_custom_wiki(api_url, title))
                         except Exception as e:
                             print(f"Ошибка при загрузке {title}: {e}")
-                else:
-                    reader = WikipediaReader()
-                    docs.extend(reader.load_data(pages=[src['url']]))
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
                 docs.extend(reader.load_data([src['url']]))
