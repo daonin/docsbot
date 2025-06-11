@@ -5,3 +5,4 @@ uvicorn
 python-telegram-bot
 pyyaml
 httpx 
+supervisor 
