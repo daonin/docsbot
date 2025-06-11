@@ -59,7 +59,7 @@ class Indexer:
                 api_url = src.get('api_url')
                 if api_url:
                     titles = self.get_all_wiki_titles(api_url)
-                    reader = WikipediaReader()
+                    reader = WikipediaReader(api_url=api_url)
                     for title in titles:
                         try:
                             docs.extend(reader.load_data(pages=[title]))
