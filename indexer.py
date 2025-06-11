@@ -1,17 +1,17 @@
 import yaml
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Document
 from llama_index.readers.web import BeautifulSoupWebReader, SimpleWebPageReader
-from sentence_transformers import SentenceTransformer
 import os
 import requests
 from urllib.parse import urlparse
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         self.index_path = self.config.get('llama_index_path', './index/')
-        self.embedding_model = SentenceTransformer(self.config['embedding_model'])
+        self.embedding_model = HuggingFaceEmbedding(model_name=self.config['embedding_model'])
         self.sources = self.config['sources']
         self.index = None
     
@@ -63,16 +63,23 @@ class Indexer:
 
     def build_index(self):
         docs = []
-        for src in self.sources:
+        total_sources = len(self.sources)
+        for src_idx, src in enumerate(self.sources, 1):
+            print(f"[Источник {src_idx}/{total_sources}] type={src['type']} path/url={src.get('path') or src.get('url') or src.get('api_url')}")
             if src['type'] == 'local':
                 reader = SimpleDirectoryReader(src['path'])
-                docs.extend(reader.load_data())
+                local_docs = reader.load_data()
+                print(f"  Загружено {len(local_docs)} документов из локального источника")
+                docs.extend(local_docs)
             elif src['type'] == 'wiki':
                 api_url = src.get('api_url')
                 if api_url:
                     page_ids = self.get_all_wiki_titles(api_url)
-                    for page_id in page_ids:
+                    total_pages = len(page_ids)
+                    print(f"  Всего страниц в Wiki: {total_pages}")
+                    for page_idx, page_id in enumerate(page_ids, 1):
                         try:
+                            print(f"    [Wiki {page_idx}/{total_pages}] page_id={page_id}")
                             doc = self.load_from_custom_wiki(api_url, page_id)
                             if doc:
                                 docs.append(doc)
@@ -80,10 +87,17 @@ class Indexer:
                             print(f"Ошибка при загрузке {page_id}: {e}")
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
-                docs.extend(reader.load_data([src['url']]))
+                print(f"  Индексирую Swagger по адресу: {src['url']}")
+                swagger_docs = reader.load_data([src['url']])
+                print(f"  Загружено {len(swagger_docs)} документов из Swagger")
+                docs.extend(swagger_docs)
             elif src['type'] == 'website':
                 reader = BeautifulSoupWebReader()
-                docs.extend(reader.load_data([src['url']]))
+                print(f"  Индексирую сайт по адресу: {src['url']}")
+                site_docs = reader.load_data([src['url']])
+                print(f"  Загружено {len(site_docs)} документов с сайта")
+                docs.extend(site_docs)
+        print(f"Всего документов для индексации: {len(docs)}")
         self.index = VectorStoreIndex.from_documents(docs, embed_model=self.embedding_model)
         os.makedirs(self.index_path, exist_ok=True)
         self.index.storage_context.persist(persist_dir=self.index_path)
