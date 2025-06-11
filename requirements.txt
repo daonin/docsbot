@@ -3,7 +3,7 @@ llama-index-readers-file
 llama-index-readers-web
 llama-index-readers-wikipedia
 llama-hub
-sentence-transformers
+llama-index.embeddings.huggingface
 fastapi
 uvicorn
 python-telegram-bot
