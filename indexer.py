@@ -15,7 +15,7 @@ class Indexer:
         self.sources = self.config['sources']
         self.index = None
     
-    def load_from_custom_wiki(self,api_url, page_title):
+    def load_from_custom_wiki(self, api_url, page_title):
         params = {
             "action": "query",
             "format": "json",
@@ -25,7 +25,11 @@ class Indexer:
         }
         response = requests.get(api_url, params=params).json()
         page = next(iter(response["query"]["pages"].values()))
-        return Document(text=page["extract"])
+        extract = page.get("extract")
+        if not extract:
+            print(f"Нет содержимого для {page_title}")
+            return None
+        return Document(text=extract)
         
     # Получаем все страницы из википедии
     def get_all_wiki_titles(self, api_url):
@@ -72,7 +76,9 @@ class Indexer:
                     titles = self.get_all_wiki_titles(api_url)
                     for title in titles:
                         try:
-                            docs.extend(self.load_from_custom_wiki(api_url, title))
+                            doc = self.load_from_custom_wiki(api_url, title)
+                            if doc:
+                                docs.append(doc)
                         except Exception as e:
                             print(f"Ошибка при загрузке {title}: {e}")
             elif src['type'] == 'swagger':
