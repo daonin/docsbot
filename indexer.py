@@ -5,6 +5,7 @@ from llama_index.readers.wikipedia import WikipediaReader
 from sentence_transformers import SentenceTransformer
 import os
 import requests
+from urllib.parse import urlparse
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
@@ -17,6 +18,7 @@ class Indexer:
         
     # Получаем все страницы из википедии
     def get_all_wiki_titles(self, api_url):
+        base_netloc = urlparse(api_url).netloc
         pages = []
         apcontinue = ''
         while True:
@@ -28,10 +30,21 @@ class Indexer:
             }
             if apcontinue:
                 params['apcontinue'] = apcontinue
-            resp = requests.get(api_url, params=params).json()
-            pages.extend([p['title'] for p in resp['query']['allpages']])
-            if 'continue' in resp:
-                apcontinue = resp['continue']['apcontinue']
+            resp = requests.get(api_url, params=params)
+            try:
+                data = resp.json()
+            except Exception:
+                print("Ошибка ответа MediaWiki API:")
+                print(resp.status_code, resp.headers.get('content-type'))
+                print(resp.text[:500])
+                raise
+            # Проверяем, что не ушли на другой домен (на всякий случай)
+            if urlparse(resp.url).netloc != base_netloc:
+                print(f"Пропущен внешний домен: {resp.url}")
+                break
+            pages.extend([p['title'] for p in data['query']['allpages']])
+            if 'continue' in data:
+                apcontinue = data['continue']['apcontinue']
             else:
                 break
         return pages
