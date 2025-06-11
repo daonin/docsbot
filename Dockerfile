@@ -5,4 +5,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN pip install supervisor
 COPY supervisord.conf ./
-CMD ["supervisord", "-c", "/app/supervisord.conf"] 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"] 
