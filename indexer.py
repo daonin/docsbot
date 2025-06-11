@@ -14,7 +14,8 @@ class Indexer:
         self.embedding_model = SentenceTransformer(self.config['embedding_model'])
         self.sources = self.config['sources']
         self.index = None
-
+        
+    # Получаем все страницы из википедии
     def get_all_wiki_titles(self, api_url):
         pages = []
         apcontinue = ''
