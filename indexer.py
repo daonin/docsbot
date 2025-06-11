@@ -1,5 +1,5 @@
 import yaml
-from llama_index import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.readers.web import BeautifulSoupWebReader, WebBaseReader
 from llama_index.readers.mediawiki import MediaWikiReader
 from sentence_transformers import SentenceTransformer
@@ -29,14 +29,17 @@ class Indexer:
             elif src['type'] == 'website':
                 reader = BeautifulSoupWebReader()
                 docs.extend(reader.load_data([src['url']]))
-        self.index = VectorStoreIndex.from_documents(docs, embed_model=self.embedding_model)
+        self.index = VectorStoreIndex.from_documents(docs)
         os.makedirs(self.index_path, exist_ok=True)
-        self.index.save_to_disk(os.path.join(self.index_path, 'index.json'))
+        self.index.storage_context.persist(persist_dir=self.index_path)
 
     def load_index(self):
-        self.index = VectorStoreIndex.load_from_disk(os.path.join(self.index_path, 'index.json'), embed_model=self.embedding_model)
+        from llama_index.core import StorageContext, load_index_from_storage
+        storage_context = StorageContext.from_defaults(persist_dir=self.index_path)
+        self.index = load_index_from_storage(storage_context)
 
     def query(self, question):
         if self.index is None:
             self.load_index()
-        return self.index.query(question) 
+        query_engine = self.index.as_query_engine()
+        return query_engine.query(question) 
