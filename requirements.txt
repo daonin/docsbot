@@ -9,4 +9,3 @@ python-telegram-bot
 pyyaml
 httpx 
 supervisor 
-concurrent.futures

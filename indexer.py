@@ -7,6 +7,9 @@ from urllib.parse import urlparse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import glob
+import logging
+
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s %(message)s')
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
@@ -18,10 +21,10 @@ class Indexer:
         self.index = None
         # Проверяем, есть ли уже индекс
         if self._index_exists():
-            print(f"[Indexer] Найден существующий индекс в {self.index_path}, загружаю...")
+            logging.info(f"[Indexer] Найден существующий индекс в {self.index_path}, загружаю...")
             self.load_index()
         else:
-            print(f"[Indexer] Индекс не найден, создаю новый...")
+            logging.info(f"[Indexer] Индекс не найден, создаю новый...")
             self.build_index()
     
     def _index_exists(self):
@@ -40,7 +43,7 @@ class Indexer:
         response = requests.get(api_url, params=params).json()
         page = response["parse"]["text"]["*"]
         if not page:
-            print(f"Нет содержимого для {page_id}")
+            logging.warning(f"Нет содержимого для {page_id}")
             return None
         return Document(text=page)
         
@@ -62,13 +65,13 @@ class Indexer:
             try:
                 data = resp.json()
             except Exception:
-                print("Ошибка ответа MediaWiki API:")
-                print(resp.status_code, resp.headers.get('content-type'))
-                print(resp.text[:500])
+                logging.error("Ошибка ответа MediaWiki API:")
+                logging.error(f"{resp.status_code} {resp.headers.get('content-type')}")
+                logging.error(resp.text[:500])
                 raise
             # Проверяем, что не ушли на другой домен (на всякий случай)
             if urlparse(resp.url).netloc != base_netloc:
-                print(f"Пропущен внешний домен: {resp.url}")
+                logging.warning(f"Пропущен внешний домен: {resp.url}")
                 break
             pages.extend([p['pageid'] for p in data['query']['allpages']])
             if 'continue' in data:
@@ -81,37 +84,36 @@ class Indexer:
         docs = []
         total_sources = len(self.sources)
         for src_idx, src in enumerate(self.sources, 1):
-            print(f"[Источник {src_idx}/{total_sources}] type={src['type']} path/url={src.get('path') or src.get('url') or src.get('api_url')}")
+            logging.info(f"[Источник {src_idx}/{total_sources}] type={src['type']} path/url={src.get('path') or src.get('url') or src.get('api_url')}")
             if src['type'] == 'local':
                 reader = SimpleDirectoryReader(src['path'])
                 local_docs = reader.load_data()
-                print(f"  Загружено {len(local_docs)} документов из локального источника")
+                logging.info(f"  Загружено {len(local_docs)} документов из локального источника")
                 docs.extend(local_docs)
             elif src['type'] == 'wiki':
                 api_url = src.get('api_url')
                 if api_url:
                     page_ids = self.get_all_wiki_titles(api_url)
-                    docs = []
                     with ThreadPoolExecutor(max_workers=8) as executor:
                         futures = {executor.submit(self.load_from_custom_wiki, api_url, pid): pid for pid in page_ids}
                         for i, future in enumerate(as_completed(futures), 1):
                             doc = future.result()
                             if doc:
                                 docs.append(doc)
-                            print(f"  [{i}/{len(page_ids)}] wiki page loaded")
+                            logging.info(f"  [{i}/{len(page_ids)}] wiki page loaded")
             elif src['type'] == 'swagger':
                 reader = SimpleWebPageReader()
-                print(f"  Индексирую Swagger по адресу: {src['url']}")
+                logging.info(f"  Индексирую Swagger по адресу: {src['url']}")
                 swagger_docs = reader.load_data([src['url']])
-                print(f"  Загружено {len(swagger_docs)} документов из Swagger")
+                logging.info(f"  Загружено {len(swagger_docs)} документов из Swagger")
                 docs.extend(swagger_docs)
             elif src['type'] == 'website':
                 reader = BeautifulSoupWebReader()
-                print(f"  Индексирую сайт по адресу: {src['url']}")
+                logging.info(f"  Индексирую сайт по адресу: {src['url']}")
                 site_docs = reader.load_data([src['url']])
-                print(f"  Загружено {len(site_docs)} документов с сайта")
+                logging.info(f"  Загружено {len(site_docs)} документов с сайта")
                 docs.extend(site_docs)
-        print(f"Всего документов для индексации: {len(docs)}")
+        logging.info(f"Всего документов для индексации: {len(docs)}")
         self.index = VectorStoreIndex.from_documents(docs, embed_model=self.embedding_model)
         os.makedirs(self.index_path, exist_ok=True)
         self.index.storage_context.persist(persist_dir=self.index_path)
