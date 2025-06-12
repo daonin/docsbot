@@ -6,6 +6,7 @@ import requests
 from urllib.parse import urlparse
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import glob
 
 class Indexer:
     def __init__(self, config_path="config.yaml"):
@@ -15,6 +16,20 @@ class Indexer:
         self.embedding_model = HuggingFaceEmbedding(model_name=self.config['embedding_model'])
         self.sources = self.config['sources']
         self.index = None
+        # Проверяем, есть ли уже индекс
+        if self._index_exists():
+            print(f"[Indexer] Найден существующий индекс в {self.index_path}, загружаю...")
+            self.load_index()
+        else:
+            print(f"[Indexer] Индекс не найден, создаю новый...")
+            self.build_index()
+    
+    def _index_exists(self):
+        # Проверяем, есть ли хоть один файл в папке индекса
+        if not os.path.exists(self.index_path):
+            return False
+        files = glob.glob(os.path.join(self.index_path, '*'))
+        return len(files) > 0
     
     def load_from_custom_wiki(self, api_url, page_id):
         params = {

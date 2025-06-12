@@ -11,11 +11,11 @@ services:
   api:
     build: .
     volumes:
-      - ./index:/app/index
+      - ./docsbot_index:/app/index
     ports:
       - "8000:8000"
     depends_on:
       - model
 
 volumes:
-  ollama_data: 
+  ollama_data:
